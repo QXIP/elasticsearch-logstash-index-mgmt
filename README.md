@@ -28,6 +28,9 @@ Backup handles making a backup and a restore script for a given index. The defau
 
 Restore handles retrieving a backup file and restore script (from S3), and then executing the restore script locally after download.
 
+### elasticsearch-snapshop-index.sh
+
+Handle creating, listing and restoring snapshots and snapshot repositories on the cluster (not locally)
 
 ## Cron
 
