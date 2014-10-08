@@ -29,6 +29,7 @@ OPTIONS:
   -i    Indices to keep (default: 14)
   -e    Elasticsearch URL (default: http://localhost:9200)
   -g    Consistent index name (default: logstash)
+  -a    HTTP Authentication String (optional)
   -o    Output actions to a specified file
 
 EXAMPLES:
@@ -53,11 +54,12 @@ EOF
 ELASTICSEARCH="http://localhost:9200"
 KEEP=14
 GREP="logstash"
+AUTH=""
 
 # Validate numeric values
 RE_D="^[0-9]+$"
 
-while getopts ":i:e:g:o:h" flag
+while getopts ":i:e:g:o:a:h" flag
 do
   case "$flag" in
     h)
@@ -73,6 +75,9 @@ do
       ;;
     e)
       ELASTICSEARCH=$OPTARG
+      ;;
+    a)
+      AUTH="-u $OPTARG"
       ;;
     g)
       GREP=$OPTARG
@@ -95,7 +100,7 @@ if [ -n "$ERROR" ]; then
 fi
 
 # Get the indices from elasticsearch
-INDICES_TEXT=`curl -s "$ELASTICSEARCH/_status?pretty=true" | grep $GREP | grep -v \"index\" | sort -r | awk -F\" {'print $2'}`
+INDICES_TEXT=$(curl -s "$ELASTICSEARCH/_status?pretty=true" $AUTH| grep $GREP | grep -v \"index\" | sort -r | awk -F\" {'print $2'})
 
 if [ -z "$INDICES_TEXT" ]; then
   echo "No indices returned containing '$GREP' from $ELASTICSEARCH."
@@ -114,10 +119,10 @@ if [ ${#INDEX[@]} -gt $KEEP ]; then
     # We don't want to accidentally delete everything
     if [ -n "$index" ]; then
       if [ -z "$LOGFILE" ]; then
-        curl -s -XDELETE "$ELASTICSEARCH/$index/" > /dev/null
+        curl -s -XDELETE "$ELASTICSEARCH/$index/" "$AUTH" > /dev/null
       else
         echo `date "+[%Y-%m-%d %H:%M] "`" Deleting index: $index." >> $LOGFILE
-        curl -s -XDELETE "$ELASTICSEARCH/$index/" >> $LOGFILE
+        curl -s -XDELETE "$ELASTICSEARCH/$index/" "$AUTH" >> $LOGFILE
       fi
     fi
   done

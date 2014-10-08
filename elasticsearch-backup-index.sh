@@ -37,6 +37,7 @@ OPTIONS:
   -s    Shards (default: 5)
   -r    Replicas (default: 0)
   -e    Elasticsearch URL (default: http://localhost:9200)
+  -a    HTTP Authentication (optional)
   -n    How nice tar must be (default: 19)
   -u    Restart command for elastic search (default 'service elasticsearch restart')
 
@@ -78,7 +79,7 @@ RESTART="service elasticsearch restart"
 # Validate shard/replica values
 RE_D="^[0-9]+$"
 
-while getopts ":b:i:d:c:t:ps:r:e:n:u:h" flag
+while getopts ":b:i:d:c:t:ps:r:e:n:u:a:h" flag
 do
   case "$flag" in
     h)

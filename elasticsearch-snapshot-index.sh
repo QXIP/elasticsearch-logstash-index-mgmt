@@ -62,6 +62,7 @@ OPTIONS:
   -l    Show snapshot details only (read-only mode)
   -r    Restore snapshot (*MUST* match -n parameter for safety)
   -e    Elasticsearch URL (default: http://localhost:9200)
+  -a    HTTP Authentication (optional)
 
 EXAMPLES:
 
@@ -103,7 +104,7 @@ WAIT="yes"
 # Validate shard/replica values
 RE_D="^[0-9]+$"
 
-while getopts ":b:i:n:t:e:w:ps:h:r:l" flag
+while getopts ":b:i:n:t:e:w:ps:h:r:a:l" flag
 do
   case "$flag" in
     h)
@@ -125,11 +126,11 @@ do
     e)
       ELASTICSEARCH=$OPTARG
       ;;
-    w)
-      WAIT=$OPTARG
-      ;;
     l)
       LIST=1
+      ;;
+    a)
+      AUTH="-c $OPTARG"
       ;;
     r)
       RESTORE=$OPTARG
@@ -164,10 +165,10 @@ if [ -n $LIST ]; then
 	# If no snapshot name specified, show all
 	if [ -z "$S_NAME" ]; then
 	   echo "Showing ALL snapshots in repository $S_REPO"
-	   curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/_all"
+	   curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/_all" $AUTH
 	else 
 	   echo "Showing $S_NAME snapshots in repository $S_REPO"
-	   curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME"
+	   curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME" $AUTH
 	fi
 	echo
 	echo
@@ -186,7 +187,7 @@ if [ -n $RESTORE ]; then
 	echo;
 	echo "Fetching snapshot details..."
 	echo
-	REPO_TEST=`curl -s -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME"`
+	REPO_TEST=`curl -s -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME" $AUTH`
 	if [[ $REPO_TEST == *error* ]]
 	then
 	  echo "Repository $S_REPO not found!";
@@ -200,10 +201,10 @@ if [ -n $RESTORE ]; then
 	   	echo "Restoring $S_NAME snapshots from repository $S_REPO ..."
 		if [ -n $INDEXES ]; then
 		  # selective restore
-	  	  curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME/_restore" -d '{"indices": "$INDEXES","ignore_unavailable": "true","include_global_state": false}'
+	  	  curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME/_restore" $AUTH -d '{"indices": "$INDEXES","ignore_unavailable": "true","include_global_state": false}'
 		else
 		  # full restore
-	   	  curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME/_restore"
+	   	  curl -XGET "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME/_restore" $AUTH
 		fi
 		;;
 	  n|N ) 
@@ -222,20 +223,20 @@ fi
 # Create Snapshot?
 # Get snapshot repository details from Elasticsearch
 
-REPO_TEST=`curl -s -XGET "$ELASTICSEARCH/_snapshot/$S_REPO"`
+REPO_TEST=`curl -s -XGET "$ELASTICSEARCH/_snapshot/$S_REPO" $AUTH`
 if [[ $REPO_TEST == *error* ]]
 then
   echo "Repository $S_REPO not found! Creating one...";
-  curl -XPUT '$ELASTICSEARCH/_snapshot/$S_REPO' -d '{"type": "fs","settings": {"compress" : true,"location": "$TMP_DIR"}}'
+  curl -XPUT '$ELASTICSEARCH/_snapshot/$S_REPO' $AUTH -d '{"type": "fs","settings": {"compress" : true,"location": "$TMP_DIR"}}'
 fi
 
 # Check if FULL or SELECTIVE snapshot
 if [ -n $INDEXES ]; then
 	# selective
-	curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME" -d '{"indices": "$INDEXES","ignore_unavailable": "true","include_global_state": false}'
+	curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME" $AUTH -d '{"indices": "$INDEXES","ignore_unavailable": "true","include_global_state": false}'
 else
 	# full snap
-	curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME?wait_for_completion=$WAIT"
+	curl -XPUT "$ELASTICSEARCH/_snapshot/$S_REPO/$S_NAME?wait_for_completion=$WAIT" $AUTH
 fi
 
 echo
