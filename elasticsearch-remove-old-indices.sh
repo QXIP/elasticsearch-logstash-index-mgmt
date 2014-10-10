@@ -114,15 +114,16 @@ fi
 
 # Delete indices
 declare -a INDEX=($INDICES_TEXT)
+
 if [ ${#INDEX[@]} -gt $KEEP ]; then
   for index in ${INDEX[@]:$KEEP};do
     # We don't want to accidentally delete everything
     if [ -n "$index" ]; then
       if [ -z "$LOGFILE" ]; then
-        curl -s -XDELETE "$ELASTICSEARCH/$index/" "$AUTH" > /dev/null
+        curl -s -XDELETE "$ELASTICSEARCH/$index/" $AUTH
       else
         echo `date "+[%Y-%m-%d %H:%M] "`" Deleting index: $index." >> $LOGFILE
-        curl -s -XDELETE "$ELASTICSEARCH/$index/" "$AUTH" >> $LOGFILE
+        curl -s -XDELETE "$ELASTICSEARCH/$index/" $AUTH >> $LOGFILE
       fi
     fi
   done
